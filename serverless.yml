@@ -1,0 +1,125 @@
+service: myserverlessproject3
+
+provider:
+    name: aws
+    runtime: nodejs12.x
+    profile: serverlessUser
+    region: eu-west-1
+    environment:
+        bucketName: ${self:custom.bucketName}
+    iamRoleStatements:
+        - Effect: Allow
+          Action:
+              - dynamodb:*
+              - s3:*
+              - ses:*
+          Resource: '*'
+
+plugins:
+    - serverless-webpack
+    - serverless-offline
+    - serverless-dynamodb-local
+
+package:
+    individually: true
+
+custom:
+    tableName: player-points-table
+    bucketName: myserverlessprojectuploadbucket-123123
+    dynamodb:
+        stages:
+            - dev
+        start:
+            port: 8000
+            inMemory: true
+            migrate: true
+        migration:
+            dir: offline/migrations
+
+functions:
+    getUser:
+        handler: lambdas/endpoints/user/get.handler
+        events:
+            - http:
+                  path: user/{userId}
+                  method: GET
+                  cors: true
+    createUser:
+        handler: lambdas/endpoints/user/create.handler
+        events:
+            - http:
+                  path: user
+                  method: POST
+                  cors: true
+    getRoom:
+        handler: lambdas/endpoints/room/get.handler
+        events:
+            - http:
+                  path: room/{roomId}
+                  method: GET
+                  cors: true
+    createRoom:
+        handler: lambdas/endpoints/room/create.handler
+        events:
+            - http:
+                  path: room
+                  method: POST
+                  cors: true
+    getMessages:
+        handler: lambdas/endpoints/message/getRoomMessages.handler
+        events:
+            - http:
+                  path: message/{roomId}
+                  method: GET
+                  cors: true
+    createMessage:
+        handler: lambdas/endpoints/message/create.handler
+        events:
+            - http:
+                  path: message
+                  method: POST
+                  cors: true
+
+
+resources:
+    Resources:
+        DemoBucketUpload:
+            Type: AWS::S3::Bucket
+            Properties:
+                BucketName: ${self:custom.bucketName}
+        UsersTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: Users
+                AttributeDefinitions:
+                    - AttributeName: userId
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: userId
+                      KeyType: HASH
+                BillingMode: PAY_PER_REQUEST
+        RoomsTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: Rooms
+                AttributeDefinitions:
+                    - AttributeName: roomId
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: roomId
+                      KeyType: HASH
+                BillingMode: PAY_PER_REQUEST
+        MessagesTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: Messages
+                AttributeDefinitions:
+                    - AttributeName: messageId
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: messageId
+                      KeyType: HASH
+                BillingMode: PAY_PER_REQUEST
+
+        
+                
